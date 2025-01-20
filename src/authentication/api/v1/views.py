@@ -1,7 +1,5 @@
-from datetime import datetime, UTC
+from uuid import UUID
 
-import jwt
-from django.conf import settings
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -10,6 +8,7 @@ from rest_framework.views import APIView
 
 from authentication.api.v1.serializers import AuthJWTSerializer, UserSerializer, RegisterUserSerializer
 from authentication.models import CustomUser, RefreshToken
+from authentication.utils import obtain_pair_tokens
 
 
 class RegisterView(APIView):
@@ -60,23 +59,7 @@ class LoginView(APIView):
         serializer = AuthJWTSerializer(data=request.data)
         if serializer.is_valid():
             user: CustomUser = serializer.validated_data.get("user")
-            email = user.email
-            access_token = jwt.encode(
-                {
-                    "sub": email,
-                    "iat": datetime.now(UTC),
-                    "exp": datetime.now(UTC) + settings.ACCESS_EXPIRE,
-                },
-                settings.SECRET_KEY,
-                algorithm="HS256",
-            )
-
-            refresh_token = RefreshToken(user=user, exp_time=datetime.now() + settings.REFRESH_EXPIRE)
-            refresh_token.save()
-            data = {
-                "access_token": access_token,
-                "refresh_token": refresh_token.id,
-            }
+            data = obtain_pair_tokens(user)
 
             return Response(data, status=status.HTTP_200_OK)
 
@@ -84,4 +67,20 @@ class LoginView(APIView):
 
 
 class RefreshTokenView(APIView):
-    ...
+    def post(self, request):
+        refresh_token = request.data.get("refresh_token")
+        try:
+            UUID(refresh_token, version=4)
+        except ValueError:
+            return Response({"msg": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST) 
+
+        check_token = RefreshToken.objects.filter(id=refresh_token, expire=False).first()
+        if not check_token:
+            return Response({"msg": "Invalid token or token time expired."}, status=status.HTTP_400_BAD_REQUEST)
+
+        expired_token = RefreshToken.objects.get(id=refresh_token)
+        expired_token.delete()
+
+        data = obtain_pair_tokens(check_token.user)
+
+        return Response(data, status=status.HTTP_200_OK)
