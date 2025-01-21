@@ -1,17 +1,29 @@
 from uuid import UUID
 
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
-from authentication.api.v1.serializers import AuthJWTSerializer, UserSerializer, RegisterUserSerializer
+from authentication.api.v1.serializers import (
+    AuthJWTSerializer,
+    LogoutSerializer,
+    RefreshTokenSerializer,
+    RegisterUserSerializer,
+    UserSerializer,
+    UserUpdateSerializer,
+)
 from authentication.models import CustomUser, RefreshToken
 from authentication.utils import obtain_pair_tokens
 
 
 class RegisterView(APIView):
+    @swagger_auto_schema(
+        request_body=RegisterUserSerializer,
+    )
     def post(self, request: Request):
         serializer = RegisterUserSerializer(data=request.data)
         if serializer.is_valid():
@@ -23,6 +35,9 @@ class RegisterView(APIView):
 
 
 class LogoutView(APIView):
+    @swagger_auto_schema(
+        request_body=LogoutSerializer,
+    )
     def post(self, request: Request):
         try:
             refrest_token = request.data.get("refresh_token")
@@ -37,12 +52,35 @@ class LogoutView(APIView):
 class UserProfileView(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                name="Authorization",
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description="Authorization Token. Example: Bearer Token",
+                required=True,
+            )
+        ],
+    )
     def get(self, request: Request):
         user = request.user
         serializer = UserSerializer(user)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @swagger_auto_schema(
+        request_body=UserUpdateSerializer,
+        manual_parameters=[
+            openapi.Parameter(
+                name="Authorization",
+                in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description="Authorization Token. Example: Bearer Token",
+                required=True,
+            )
+        ],
+    )
     def patch(self, request: Request):
         user = request.user
         serializer = UserSerializer(user, data=request.data, partial=True)
@@ -55,6 +93,9 @@ class UserProfileView(APIView):
 
 
 class LoginView(APIView):
+    @swagger_auto_schema(
+        request_body=AuthJWTSerializer,
+    )
     def post(self, request):
         serializer = AuthJWTSerializer(data=request.data)
         if serializer.is_valid():
@@ -67,6 +108,9 @@ class LoginView(APIView):
 
 
 class RefreshTokenView(APIView):
+    @swagger_auto_schema(
+        request_body=RefreshTokenSerializer,
+    )
     def post(self, request):
         refresh_token = request.data.get("refresh_token")
         try:
