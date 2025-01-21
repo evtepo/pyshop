@@ -10,5 +10,6 @@ INSTALLED_APPS = [
 
     "constance",
     "constance.backends.database",
+    "drf_yasg",
     "rest_framework",
 ]
