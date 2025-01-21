@@ -8,5 +8,7 @@ INSTALLED_APPS = [
 
     "authentication",
 
+    "constance",
+    "constance.backends.database",
     "rest_framework",
 ]

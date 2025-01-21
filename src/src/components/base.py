@@ -35,5 +35,9 @@ REST_FRAMEWORK = {
     ),
 }
 
-ACCESS_EXPIRE = timedelta(seconds=30)
-REFRESH_EXPIRE = timedelta(days=30)
+CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"
+
+CONSTANCE_CONFIG = {
+    "ACCESS_EXPIRE": (30, "Access token lifetime in seconds"),
+    "REFRESH_EXPIRE": (30, "Refresh token lifetime in days"),
+}
