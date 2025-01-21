@@ -4,10 +4,22 @@ from rest_framework import serializers
 from authentication.models import CustomUser
 
 
-class UserSerializer(serializers.ModelSerializer):
+class RefreshTokenMixin(serializers.Serializer):
+    refresh_token = serializers.CharField(write_only=True)
+
+
+class UserMixin(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = ("id", "username", "email")
+
+
+class UserSerializer(UserMixin): ...
+
+
+class UserUpdateSerializer(UserMixin):
+    username = serializers.CharField(required=False)
+    email = serializers.EmailField(required=False)
 
 
 class RegisterUserSerializer(serializers.ModelSerializer):
@@ -44,3 +56,9 @@ class AuthJWTSerializer(serializers.Serializer):
         attrs["user"] = user
 
         return attrs
+
+
+class LogoutSerializer(RefreshTokenMixin): ...
+
+
+class RefreshTokenSerializer(RefreshTokenMixin): ...
